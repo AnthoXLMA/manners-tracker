@@ -25,7 +25,6 @@ export const useGoalsStore = create((set, get) => ({
   set({ goals: newGoals });
 },
 
-
   // Marquer une manière comme faite
   markDone: (id) => {
     set({
@@ -65,4 +64,16 @@ export const useGoalsStore = create((set, get) => ({
       ],
     });
   },
+
+  addCustomManners: (manners, days = 7) => {
+  const today = dayjs();
+  const newGoals = manners.map((manner, index) => ({
+    ...manner,
+    id: Date.now() + index,
+    status: "pending",
+    deadline: today.add(index * Math.floor(days / manners.length), "day").format("YYYY-MM-DD"),
+  }));
+  set({ goals: [...get().goals, ...newGoals] });
+},
 }));
+

@@ -3,6 +3,14 @@ import dayjs from "dayjs";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGoalsStore } from "../store/goalsStore";
 
+// Couleurs selon le pourcentage
+const progressColor = (percent) => {
+  if (percent === 0) return "#E5E7EB"; // gris
+  if (percent < 50) return "#F59E0B"; // jaune
+  if (percent < 100) return "#10B981"; // vert
+  return "#6366F1"; // violet pour 100%
+};
+
 export default function MonthlyCalendar() {
   const goals = useGoalsStore((state) => state.goals);
   const markDone = useGoalsStore((state) => state.markDone);
@@ -37,42 +45,66 @@ export default function MonthlyCalendar() {
         <button onClick={nextMonth} className="text-purple-600 font-bold">&gt;</button>
       </div>
 
-      {/* Weekday labels */}
+      {/* Weekdays */}
       <div className="grid grid-cols-7 gap-2 mb-2">
         {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
-          <div key={d} className="text-center font-medium text-gray-500">{d}</div>
+          <div key={d} className="text-center font-medium text-gray-400">{d}</div>
         ))}
       </div>
 
-      {/* Days grid */}
+      {/* Days Grid */}
       <div className="grid grid-cols-7 gap-2">
         {daysInMonth.map((date) => {
           const percent = getCompletionPercent(date);
-          const bgColor =
-            percent === 0
-              ? "bg-gray-200"
-              : percent < 50
-              ? "bg-yellow-300"
-              : percent < 100
-              ? "bg-green-300"
-              : "bg-purple-400";
+
+          // Cercle
+          const radius = 24;
+          const stroke = 3;
+          const normalizedRadius = radius - stroke;
+          const circumference = normalizedRadius * 2 * Math.PI;
+          const strokeDashoffset = circumference - (percent / 100) * circumference;
 
           return (
             <motion.div
               key={date.format("YYYY-MM-DD")}
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
-              className={`h-12 w-12 flex items-center justify-center rounded-lg cursor-pointer transition-all hover:scale-110 ${bgColor}`}
+              className="h-14 w-14 relative flex items-center justify-center cursor-pointer"
               onClick={() => setSelectedDate(date)}
-              title={`${percent}% tasks done`}
             >
-              <span className="text-sm font-semibold text-gray-800">{date.date()}</span>
+              <svg height={radius * 2} width={radius * 2} className="absolute top-0 left-0">
+                <circle
+                  stroke="#E5E7EB"
+                  fill="transparent"
+                  strokeWidth={stroke}
+                  r={normalizedRadius}
+                  cx={radius}
+                  cy={radius}
+                />
+                <circle
+                  stroke={progressColor(percent)}
+                  fill="transparent"
+                  strokeWidth={stroke}
+                  r={normalizedRadius}
+                  cx={radius}
+                  cy={radius}
+                  strokeDasharray={circumference}
+                  strokeDashoffset={strokeDashoffset}
+                  strokeLinecap="round"
+                  style={{ transition: "stroke-dashoffset 0.5s, stroke 0.5s" }}
+                />
+              </svg>
+
+              {/* Chiffre centré et plus fin */}
+              <span className="absolute inset-0 flex items-center justify-center text-gray-900 text-sm font-medium z-10">
+                {date.date()}
+              </span>
             </motion.div>
           );
         })}
       </div>
 
-      {/* Pop-up modal */}
+      {/* Modal Tâches du jour */}
       <AnimatePresence>
         {selectedDate && (
           <motion.div
@@ -87,29 +119,34 @@ export default function MonthlyCalendar() {
               animate={{ scale: 1 }}
               exit={{ scale: 0.8 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-3xl p-6 w-80 shadow-2xl"
+              className="bg-white rounded-3xl p-6 w-80 shadow-2xl flex flex-col"
             >
-              <h3 className="text-lg font-bold mb-4">
+              <h3 className="text-lg font-bold mb-4 text-center">
                 {selectedDate.format("dddd, MMMM D")}
               </h3>
-              <div className="flex flex-col gap-3 max-h-64 overflow-y-auto">
+
+              <div className="flex flex-col gap-2 max-h-64 overflow-y-auto">
                 {getGoalsByDate(selectedDate).map((goal) => (
-                  <label key={goal.id} className="flex items-center gap-2">
+                  <div
+                    key={goal.id}
+                    className="p-2 bg-gray-100 rounded-lg flex items-center gap-2"
+                  >
                     <input
                       type="checkbox"
                       checked={goal.status === "done"}
                       onChange={() => markDone(goal.id)}
                       className="w-5 h-5 rounded border-gray-300 focus:ring-2 focus:ring-purple-500"
                     />
-                    <span className={goal.status === "done" ? "line-through text-gray-400" : ""}>
-                      {goal.title || goal.name}
+                    <span className={goal.status === "done" ? "line-through text-gray-400" : "text-gray-900"}>
+                      {goal.name || goal.title || "Sans nom"}
                     </span>
-                  </label>
+                  </div>
                 ))}
                 {getGoalsByDate(selectedDate).length === 0 && (
                   <p className="text-gray-400 text-center">Aucune tâche</p>
                 )}
               </div>
+
               <button
                 className="mt-4 w-full py-2 bg-purple-600 text-white rounded-2xl font-bold hover:bg-purple-700 transition"
                 onClick={() => setSelectedDate(null)}
