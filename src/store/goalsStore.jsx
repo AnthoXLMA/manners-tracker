@@ -7,31 +7,33 @@ export const useGoalsStore = create((set, get) => ({
 
   // Ajouter un objectif : nombre de manières + durée en jours
   addGoal: (numManners = 7, days = 7) => {
-    // Prendre un sous-ensemble aléatoire pour plus de variété
-    const shuffled = [...mannersData].sort(() => 0.5 - Math.random());
-    const selectedManners = shuffled.slice(0, numManners);
+  const shuffled = [...mannersData].sort(() => 0.5 - Math.random());
+  const selectedManners = shuffled.slice(0, numManners);
 
-    const today = dayjs();
-    const newGoals = selectedManners.map((manner, index) => ({
-      ...manner,
-      id: manner.id ?? index, // s'assurer d'avoir un ID unique
-      deadline: today.add(Math.floor(index / (numManners / days)), "day").format("YYYY-MM-DD"),
-      status: "pending",
-    }));
+  const today = dayjs();
 
-    set({ goals: newGoals });
-  },
+  // Déterminer le pas entre chaque manière pour les répartir sur les jours
+  const dayStep = Math.max(1, Math.floor(days / numManners));
+
+  const newGoals = selectedManners.map((manner, index) => ({
+    ...manner,
+    id: manner.id ?? index,
+    deadline: today.add(index * dayStep, "day").format("YYYY-MM-DD"),
+    status: "pending",
+  }));
+
+  set({ goals: newGoals });
+},
+
 
   // Marquer une manière comme faite
   markDone: (id) => {
     set({
       goals: get().goals.map((g) =>
         g.id === id ? { ...g, status: "done" } : g
-      )
+      ),
     });
   },
-
-  // Selectors simples pour les composants
 
   // Objectifs du jour
   getTodayGoals: () => {
@@ -40,7 +42,7 @@ export const useGoalsStore = create((set, get) => ({
   },
 
   // Pourcentage de progression global
-  getProgressPercent: () => {
+  progressPercent: () => {
     const goals = get().goals;
     if (!goals.length) return 0;
     const done = goals.filter((g) => g.status === "done").length;
@@ -54,7 +56,13 @@ export const useGoalsStore = create((set, get) => ({
     );
     if (!remaining.length) return;
 
-    const random = remaining[Math.floor(Math.random() * remaining.length)];
-    set({ goals: [...get().goals, { ...random, status: "pending", deadline: dayjs().format("YYYY-MM-DD") }] });
-  }
+    const random =
+      remaining[Math.floor(Math.random() * remaining.length)];
+    set({
+      goals: [
+        ...get().goals,
+        { ...random, status: "pending", deadline: dayjs().format("YYYY-MM-DD") },
+      ],
+    });
+  },
 }));
