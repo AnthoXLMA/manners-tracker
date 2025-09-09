@@ -1,33 +1,67 @@
+import { useState, useEffect } from "react";
+import { useGoalsStore } from "./store/goalsStore";
 import GoalSetup from "./components/GoalSetup";
-import DailyChecklist from "./components/DailyChecklist";
 import ProgressBar from "./components/ProgressBar";
+import DailySummary from "./components/DailySummary";
+import MonthlyCalendar from "./components/MonthlyCalendar";
 
 export default function App() {
+  const [activeTab, setActiveTab] = useState("dashboard");
+  const goals = useGoalsStore((state) => state.goals);
+  const getTodayGoals = useGoalsStore((state) => state.getTodayGoals);
+  const [todaySummary, setTodaySummary] = useState({ done: 0, total: 0 });
+
+  useEffect(() => {
+    const todayGoals = getTodayGoals();
+    const doneCount = todayGoals.filter((g) => g.status === "done").length;
+    setTodaySummary({ done: doneCount, total: todayGoals.length });
+  }, [goals, getTodayGoals]);
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-purple-50 via-pink-50 to-red-50 p-6 flex flex-col items-center gap-10">
+    <div className="min-h-screen bg-gray-50">
+      {/* Onglets */}
+      <nav className="flex justify-around bg-white shadow-md p-3 sticky top-0 z-10">
+        <button
+          className={`font-semibold px-4 py-2 rounded ${
+            activeTab === "dashboard" ? "bg-purple-500 text-white" : "text-gray-600"
+          }`}
+          onClick={() => setActiveTab("dashboard")}
+        >
+          Dashboard
+        </button>
+        <button
+          className={`font-semibold px-4 py-2 rounded ${
+            activeTab === "calendar" ? "bg-purple-500 text-white" : "text-gray-600"
+          }`}
+          onClick={() => setActiveTab("calendar")}
+        >
+          Calendrier
+        </button>
+        <button
+          className={`font-semibold px-4 py-2 rounded ${
+            activeTab === "setup" ? "bg-purple-500 text-white" : "text-gray-600"
+          }`}
+          onClick={() => setActiveTab("setup")}
+        >
+          Objectifs
+        </button>
+      </nav>
 
-      {/* Header */}
-      <header className="text-center mt-6">
-        <h1 className="text-5xl font-extrabold text-purple-700 mb-2 animate-pulse">
-          Bonnes Manières
-        </h1>
-        <p className="text-purple-500 text-lg">
-          Suivez vos bonnes habitudes quotidiennes avec style !
-        </p>
-      </header>
+      <div className="p-4 max-w-3xl mx-auto">
+        {activeTab === "dashboard" && (
+          <>
+            <ProgressBar />
+            <DailySummary todaySummary={todaySummary} />
+          </>
+        )}
 
-      {/* Goal Setup Card */}
-      <GoalSetup />
+        {activeTab === "calendar" && <MonthlyCalendar />}
 
-      {/* Progress Bar */}
-      <ProgressBar />
+        {activeTab === "setup" && <GoalSetup />}
+      </div>
 
-      {/* Daily Checklist */}
-      <DailyChecklist />
-
-      {/* Footer */}
-      <footer className="text-gray-400 mt-12 text-sm">
-        &copy; 2025 – Transformez vos manières en habitudes !
+      <footer className="mt-8 text-center text-gray-400">
+        © {new Date().getFullYear()} DitesMerci App
       </footer>
     </div>
   );
